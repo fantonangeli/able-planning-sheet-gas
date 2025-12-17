@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "push": "npx clasp push",
+    "pull": "npx clasp pull",
     "test": "test"
   },
   "author": "Fabrizio Antonangeli",

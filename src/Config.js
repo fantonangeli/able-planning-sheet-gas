@@ -14,10 +14,9 @@ const SHEET_NAME = "Requirements";
 
 // Column names
 const COLUMN_NAMES = {
-  GH_STATUS: "GH Status",
   PRODUCT_JIRA: "Product JIRA",
-  REMAINING_WORK: "Remaining Work Eng QE", //note: the Eng and Qe headers in the Spreadsheet are merged
-  REQUIREMENT: "Requirement", 
+  REMAINING_WORK: "Remaining Work", 
+  REQUIREMENT: "Requirement",
   RESPONSIBLE: "Responsible",
   RESPONSIBLE_EMAIL: "Responsible email",
   STATUS: "Status",
@@ -26,7 +25,8 @@ const COLUMN_NAMES = {
 
 // Status values
 const STATUS_VALUES = {
-  IN_PROGRESS: "In progress"
+  IN_PROGRESS: "In progress",
+  FINISHED: "Finished"
 };
 
 // GitHub API configuration
@@ -36,18 +36,26 @@ const GITHUB_API_BASE_URL = "https://api.github.com";
 // Email notification configuration
 const GH_STATUS_CHANGE_NOTIFICATION_EMAIL = {
   subject: (requirementName) => `ABLE Planning Sheet - GH Status Updated for: ${requirementName}`,
-  body: (requirementName, issueUrl, issueState, rowNumber, productJira, responsibleName) => `Hello ${responsibleName},
+  htmlBody: (requirementName, issueUrl, issueState, rowNumber, productJiraUrl, responsibleName, spreadsheetUrl, updatedStatus) => {
+    const jiraLink = productJiraUrl ? `<a href="${productJiraUrl}">${productJiraUrl}</a>` : 'Not specified';
+    const rowLink = `<a href="${spreadsheetUrl}#gid=0&range=A${rowNumber}">Row ${rowNumber}</a>`;
 
-The GitHub issue status has been updated for the following requirement:
+    return `<p>Hello ${responsibleName},</p>
 
-Row: ${rowNumber}
-Requirement: ${requirementName}
-GitHub Issue: ${issueUrl}
-Issue State: ${issueState}
+<p>This is an automated notification from the ABLE Team Initiatives Planning Sheet.<br>
+The <b>Status</b> and the <b>Remaining Work</b> has been updated for the following requirement:</p>
 
-IMPORTANT: Please update the Product JIRA ticket with this status change.
-// TODO instead of the productJira I want the link to the jira
-Product JIRA: ${productJira || 'Not specified'}
+<p>
+Row link: ${rowLink}<br>
+Requirement: ${requirementName}<br>
+Status (updated): <b>${updatedStatus}</b><br>
+Remaining Work Eng (updated): <b>0</b><br>
+GitHub Issue: <a href="${issueUrl}">${issueUrl}</a><br>
+GitHub Issue State: ${issueState}<br>
+Product JIRA: ${jiraLink}
+</p>
 
-This is an automated notification from the ABLE Team Initiatives Planning Sheet.`
+<p><strong>IMPORTANT:</strong> Please update the Product JIRA ticket with this status change.</p>
+`;
+  }
 };

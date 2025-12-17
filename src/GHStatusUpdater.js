@@ -4,72 +4,82 @@
  * @param {number} rowIndex - Zero-based row index (0 = header)
  * @param {Array} row - The row data
  * @param {Array} richTextRow - The rich text values for the row
- * @param {Object} columnIndices - Object containing column indices
- * @return {Object} - Result object with {success: boolean, message: string}
+ * @param {Object} columnIndexes - Object containing column indexes
+ * @return {boolean} - True if ok, false otherwise
  */
-function updateRowGHStatus(sheet, rowIndex, row, richTextRow, columnIndices) {
+function updateRowGHStatus(sheet, rowIndex, row, richTextRow, columnIndexes) {
   const rowNumber = rowIndex + 1; // Convert to 1-based row number
   Logger.log(`\n--- Processing row ${rowNumber} ---`);
 
-  const {statusColIndex, upstreamIssueColIndex, ghStatusColIndex, responsibleColIndex, responsibleEmailColIndex, requirementColIndex, productJiraColIndex} = columnIndices;
+  const {statusColIndex, remainingWorkColIndex, upstreamIssueColIndex, responsibleColIndex, responsibleEmailColIndex, requirementColIndex, productJiraColIndex} = columnIndexes;
 
-  // Step 1: Extract the Upstream Issue value
+  // Extract the Upstream Issue value
   let upstreamIssue = row[upstreamIssueColIndex];
-  Logger.log(`Step 1: Raw Upstream Issue value: "${upstreamIssue}"`);
+  Logger.log(`Raw Upstream Issue value: "${upstreamIssue}"`);
 
-  // Step 2: Extract URL from HYPERLINK formula, rich text link, or plain URL
+  // Extract URL from HYPERLINK formula, rich text link, or plain URL
   let issueUrl = extractUrlFromCell(upstreamIssue, richTextRow[upstreamIssueColIndex]);
-  Logger.log(`Step 2: Extracted URL: "${issueUrl}"`);
+  Logger.log(`Extracted URL: "${issueUrl}"`);
 
-  // Step 3: Extract responsible person's name and email (always log, regardless of URL validity)
+  // Extract responsible person's name and email (always log, regardless of URL validity)
   let responsibleName = "";
   let responsibleEmail = "";
 
   if (responsibleColIndex !== -1) {
     const nameValue = row[responsibleColIndex];
     responsibleName = nameValue ? String(nameValue).trim() : "";
-    Logger.log(`Step 3: Responsible name: ${responsibleName}`);
+    Logger.log(`Responsible name: ${responsibleName}`);
   }
 
   if (responsibleEmailColIndex !== -1) {
     const emailValue = row[responsibleEmailColIndex];
     responsibleEmail = emailValue ? String(emailValue).trim() : "";
-    Logger.log(`Step 3: Responsible email: ${responsibleEmail}`);
+    Logger.log(`Responsible email: ${responsibleEmail}`);
   }
 
-  // Step 4: Parse and validate GitHub issue URL
+  // Parse and validate GitHub issue URL
   const issueInfo = parseGitHubIssueUrl(issueUrl);
 
   if (!issueInfo) {
-    const msg = `✗ Invalid GitHub issue URL, skipping this row`;
-    Logger.log(`Step 4: ${msg}`);
-    return {success: false, message: msg};
+    Logger.log(`✗ Invalid GitHub issue URL, skipping this row`);
+    return false;
   }
 
-  Logger.log(`Step 4: ✓ Valid GitHub issue URL - Owner: ${issueInfo.owner}, Repo: ${issueInfo.repo}, Issue: ${issueInfo.issueNumber}`);
+  Logger.log(`✓ Valid GitHub issue URL - Owner: ${issueInfo.owner}, Repo: ${issueInfo.repo}, Issue: ${issueInfo.issueNumber}`);
 
-  // Step 5: Fetch the issue state from GitHub API
+  // Fetch the issue state from GitHub API
   const issueState = fetchGitHubIssueState(issueInfo.owner, issueInfo.repo, issueInfo.issueNumber);
   Logger.log(`  → Issue state: ${issueState}`);
 
   if (!issueState) {
-    const msg = `✗ Failed to fetch issue state`;
-    Logger.log(`Step 5: ${msg}`);
-    return {success: false, message: msg};
+    Logger.log( `✗ Failed to fetch issue state`);
+    return false;
   }
 
-  Logger.log(`Step 5: ✓ Fetched issue state: ${issueState}`);
+  Logger.log(`✓ Fetched issue state: ${issueState}`);
 
-    // TODO: until now for debug, we used a "GH Status" col, which will not be present in the real spreadsheet. If the GH Issue is "closed", change the "Status" col to "Finished" and the REMAINING_WORK column to 0 
-  // Step 6: Write the issue state to the GH Status column
-  const ghStatusCell = sheet.getRange(rowNumber, ghStatusColIndex + 1);
-  ghStatusCell.setValue(issueState);
-  Logger.log(`Step 6: Updated GH Status cell with: ${issueState}`);
+  if (issueState !== "closed") {
+      return false;
+  }
 
-  // Step 7: Send notification (if enabled)
+  // If issue is closed, update Status to "Finished" and REMAINING_WORK ENG to 0
+  let updatedStatus = row[statusColIndex]; // Default to current status
+
+  const statusCell = sheet.getRange(rowNumber, statusColIndex + 1);
+  statusCell.setValue(STATUS_VALUES.FINISHED);
+  updatedStatus = STATUS_VALUES.FINISHED;
+
+  const remainingWorkCell = sheet.getRange(rowNumber, remainingWorkColIndex + 1);
+  remainingWorkCell.setValue("0");
+
+  Logger.log(`Updated Status and Remaining Work Eng`);
+
+  // Send notification (if enabled)
   if (ENABLE_EMAIL_NOTIFICATIONS && responsibleEmail) {
     const requirementName = row[requirementColIndex] || "";
-    const productJira = row[productJiraColIndex] || "";
+    const productJiraRaw = row[productJiraColIndex] || "";
+    const productJiraUrl = extractUrlFromCell(productJiraRaw, richTextRow[productJiraColIndex]);
+    const spreadsheetUrl = SpreadsheetApp.getActiveSpreadsheet().getUrl();
 
     sendUpdateNotification({
       email: responsibleEmail,
@@ -77,16 +87,18 @@ function updateRowGHStatus(sheet, rowIndex, row, richTextRow, columnIndices) {
       issueState,
       requirementName,
       rowNumber,
-      productJira,
-      responsibleName
+      productJiraUrl,
+      responsibleName,
+      spreadsheetUrl,
+      updatedStatus
     });
 
-    Logger.log(`Step 7: Email notification sent to ${responsibleEmail}`);
+    Logger.log(`Email notification sent to ${responsibleEmail}`);
   } else if (ENABLE_EMAIL_NOTIFICATIONS && !responsibleEmail) {
-    Logger.log(`Step 7: No email found for responsible person, skipping notification`);
+    Logger.log(`No email found for responsible person, skipping notification`);
   }
 
-  return {success: true, message: `Updated row ${rowNumber} with status: ${issueState}`};
+  return true;
 }
 
 /**
@@ -101,9 +113,9 @@ function updateAllGHStatuses() {
   // Get sheet context
   const context = getSheetContext();
 
-  const {sheet, values, richTextValues, columnIndices} = context;
+  const {sheet, values, richTextValues, columnIndexes} = context;
   Logger.log(`Loaded ${values.length} rows from sheet`);
-  Logger.log(`Found columns - Status: ${columnIndices.statusColIndex}, Upstream Issue: ${columnIndices.upstreamIssueColIndex}, GH Status: ${columnIndices.ghStatusColIndex}`);
+  Logger.log(`Found columns - Status: ${columnIndexes.statusColIndex}, Upstream Issue: ${columnIndexes.upstreamIssueColIndex}`);
 
   // Filter rows with "In progress" status and process
   let updatedCount = 0;
@@ -111,15 +123,15 @@ function updateAllGHStatuses() {
 
   for (let i = 1; i < values.length && (updatedCount + skippedCount) < MAX_ROWS_TO_PROCESS; i++) {
     const row = values[i];
-    const status = row[columnIndices.statusColIndex];
+    const status = row[columnIndexes.statusColIndex];
 
     // Check if status is "In progress"
     if (status === STATUS_VALUES.IN_PROGRESS) {
       Logger.log(`Found "${STATUS_VALUES.IN_PROGRESS}" row at index ${i + 1}`);
 
-      const result = updateRowGHStatus(sheet, i, row, richTextValues[i], columnIndices);
+      const result = updateRowGHStatus(sheet, i, row, richTextValues[i], columnIndexes);
 
-      if (result.success) {
+      if (result) {
         updatedCount++;
       } else {
         skippedCount++;
@@ -170,7 +182,7 @@ function updateCurrentRowGHStatus() {
   // Get sheet context
   const context = getSheetContext();
 
-  const {sheet, values, richTextValues, columnIndices} = context;
+  const {sheet, values, richTextValues, columnIndexes} = context;
 
   // Get the row data (rowNumber - 1 because values array is 0-based)
   const rowIndex = rowNumber - 1;
@@ -178,15 +190,7 @@ function updateCurrentRowGHStatus() {
   const richTextRow = richTextValues[rowIndex];
 
   // Update the row
-  const result = updateRowGHStatus(sheet, rowIndex, row, richTextRow, columnIndices);
+  updateRowGHStatus(sheet, rowIndex, row, richTextRow, columnIndexes);
 
-  // Show result
-  const ui = SpreadsheetApp.getUi();
-  if (result.success) {
-    ui.alert('Success', result.message, ui.ButtonSet.OK);
-  } else {
-    ui.alert('Failed', result.message, ui.ButtonSet.OK);
-  }
-
-  Logger.log(`\n=== Completed: ${result.message} ===`);
+  Logger.log(`\n=== Completed update of row ${rowIndex+1} ===`);
 }
