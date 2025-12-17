@@ -30,7 +30,7 @@ const STATUS_VALUES = {
 };
 
 // GitHub API configuration
-const GITHUB_API_ENABLE_MOCK_ANSWER = true; // Set to true to avoid contacting the real API and get "closed" status from the GH Issue
+const GITHUB_API_ENABLE_MOCK_ANSWER = false; // Set to true to avoid contacting the real API and get "closed" status from the GH Issue
 const GITHUB_API_BASE_URL = "https://api.github.com";
 
 // Email notification configuration
