@@ -14,28 +14,18 @@ function updateRowGHStatus(sheet, rowIndex, row, richTextRow, columnIndexes) {
   const {statusColIndex, remainingWorkColIndex, upstreamIssueColIndex, responsibleColIndex, responsibleEmailColIndex, requirementColIndex, productJiraColIndex} = columnIndexes;
 
   // Extract the Upstream Issue value
-  let upstreamIssue = row[upstreamIssueColIndex];
+  const upstreamIssue = row[upstreamIssueColIndex];
   Logger.log(`Raw Upstream Issue value: "${upstreamIssue}"`);
 
   // Extract URL from HYPERLINK formula, rich text link, or plain URL
-  let issueUrl = extractUrlFromCell(upstreamIssue, richTextRow[upstreamIssueColIndex]);
+  const issueUrl = extractUrlFromCell(upstreamIssue, richTextRow[upstreamIssueColIndex]);
   Logger.log(`Extracted URL: "${issueUrl}"`);
 
-  // Extract responsible person's name and email (always log, regardless of URL validity)
-  let responsibleName = "";
-  let responsibleEmail = "";
+  const responsibleName = row[responsibleColIndex];
+  Logger.log(`Responsible name: ${responsibleName}`);
 
-  if (responsibleColIndex !== -1) {
-    const nameValue = row[responsibleColIndex];
-    responsibleName = nameValue ? String(nameValue).trim() : "";
-    Logger.log(`Responsible name: ${responsibleName}`);
-  }
-
-  if (responsibleEmailColIndex !== -1) {
-    const emailValue = row[responsibleEmailColIndex];
-    responsibleEmail = emailValue ? String(emailValue).trim() : "";
-    Logger.log(`Responsible email: ${responsibleEmail}`);
-  }
+  const responsibleEmail = row[responsibleEmailColIndex];
+  Logger.log(`Responsible email: ${responsibleEmail}`);
 
   // Parse and validate GitHub issue URL
   const issueInfo = parseGitHubIssueUrl(issueUrl);
@@ -62,12 +52,9 @@ function updateRowGHStatus(sheet, rowIndex, row, richTextRow, columnIndexes) {
       return false;
   }
 
-  // If issue is closed, update Status to "Finished" and REMAINING_WORK ENG to 0
-  let updatedStatus = row[statusColIndex]; // Default to current status
-
   const statusCell = sheet.getRange(rowNumber, statusColIndex + 1);
-  statusCell.setValue(STATUS_VALUES.FINISHED);
-  updatedStatus = STATUS_VALUES.FINISHED;
+  const updatedStatus = STATUS_VALUES.FINISHED;
+  statusCell.setValue(updatedStatus);
 
   const remainingWorkCell = sheet.getRange(rowNumber, remainingWorkColIndex + 1);
   remainingWorkCell.setValue("0");
