@@ -3,17 +3,17 @@
  */
 
 // Feature flags
-const ENABLE_EMAIL_NOTIFICATIONS = true; // Set to true to enable email notifications
+ENABLE_EMAIL_NOTIFICATIONS = true; // Set to true to enable email notifications
 
 // Processing limits
-const MAX_ROWS_TO_PROCESS = 1000; // Maximum number of "In progress" rows to process
-const DELAY_BETWEEN_ROWS_MS = 0; // Delay in milliseconds between processing each row (0 = no delay)
+MAX_ROWS_TO_PROCESS = 1000; // Maximum number of "In progress" rows to process
+DELAY_BETWEEN_ROWS_MS = 0; // Delay in milliseconds between processing each row (0 = no delay)
 
 // Sheet configuration
-const SHEET_NAME = "Requirements";
+SHEET_NAME = "Requirements";
 
 // Column names
-const COLUMN_NAMES = {
+COLUMN_NAMES = {
   PRODUCT_JIRA: "Product JIRA",
   REMAINING_WORK: "Remaining Work", 
   REQUIREMENT: "Requirement",
@@ -24,17 +24,17 @@ const COLUMN_NAMES = {
 };
 
 // Status values
-const STATUS_VALUES = {
+STATUS_VALUES = {
   IN_PROGRESS: "In progress",
   FINISHED: "Finished"
 };
 
 // GitHub API configuration
-const GITHUB_API_ENABLE_MOCK_ANSWER = false; // Set to true to avoid contacting the real API and get "closed" status from the GH Issue
-const GITHUB_API_BASE_URL = "https://api.github.com";
+GITHUB_API_ENABLE_MOCK_ANSWER = false; // Set to true to avoid contacting the real API and get "closed" status from the GH Issue
+GITHUB_API_BASE_URL = "https://api.github.com";
 
 // Email notification configuration
-const GH_STATUS_CHANGE_NOTIFICATION_EMAIL = {
+GH_STATUS_CHANGE_NOTIFICATION_EMAIL = {
   subject: (requirementName) => `ABLE Planning Sheet - GH Status Updated for: ${requirementName}`,
   htmlBody: (requirementName, issueUrl, issueState, rowNumber, productJiraUrl, responsibleName, spreadsheetUrl, updatedStatus) => {
     const jiraLink = productJiraUrl ? `<a href="${productJiraUrl}">${productJiraUrl}</a>` : 'Not specified';

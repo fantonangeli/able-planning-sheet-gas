@@ -19,13 +19,12 @@ Google Apps Script automation for syncing GitHub issue statuses with the ABLE Te
 
 3. **Login to Google Apps Script**
    ```bash
-   npx clasp login
+   npm run login
    ```
 
-5. **Push the scripts to the Spreadsheet**
-   ```bash
-   npm run push
-   ```
+4. **Add the .clasp.json**
+    Add the `.clasp.json` file with the settings. You should have received it already.
+
 
 ## Usage
 
@@ -48,6 +47,32 @@ From Apps Script editor:
 ## Configuration
 
 See `src/Config.js` to customize the behavior.
+
+## Developing
+
+- Push code to Google Apps Script
+
+```bash
+npm run push
+```
+
+- Open the App Script in the browser
+
+```bash
+npm run open-script
+```
+
+- Open the container Spreadsheet in the browser
+
+```bash
+npm run open-container
+```
+
+- Run unit tests
+
+```bash
+npm test
+```
 
 ## License
 

@@ -29,7 +29,6 @@ function extractUrlFromCell(value, richTextValue) {
     }
   }
 
-  // Otherwise, assume it's a plain URL
   Logger.log("  → Using plain text value");
   return valueStr;
 }

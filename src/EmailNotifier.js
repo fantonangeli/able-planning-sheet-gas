@@ -15,6 +15,10 @@ function sendUpdateNotification({email, issueUrl, issueState, requirementName, r
   const subject = GH_STATUS_CHANGE_NOTIFICATION_EMAIL.subject(requirementName);
   const htmlBody = GH_STATUS_CHANGE_NOTIFICATION_EMAIL.htmlBody(requirementName, issueUrl, issueState, rowNumber, productJiraUrl, responsibleName, spreadsheetUrl, updatedStatus);
 
+  if (!ENABLE_EMAIL_NOTIFICATIONS) {
+      return false;
+  }
+
   try {
     MailApp.sendEmail({
       to: email,

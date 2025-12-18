@@ -26,7 +26,6 @@ function getSheetContext() {
         remainingWorkColIndex: headers.findIndex((e=>e.startsWith(COLUMN_NAMES.REMAINING_WORK))), //note: the Eng and Qe headers in the Spreadsheet are merged
     };
 
-    // Validate required columns
     if (columnIndexes.statusColIndex === -1 || columnIndexes.upstreamIssueColIndex === -1) {
         SpreadsheetApp.getUi().alert('Error', 'Required columns not found!', SpreadsheetApp.getUi().ButtonSet.OK);
         throw new Error("Required columns not found!")
