@@ -78,12 +78,4 @@ module.exports = {
   createMockSheet,
   createMockSpreadsheet,
   createMockUi,
-  resetAllMocks: () => {
-    Logger.log.mockClear();
-    MailApp.sendEmail.mockClear();
-    UrlFetchApp.fetch.mockClear();
-    Utilities.sleep.mockClear();
-    SpreadsheetApp.getActiveSpreadsheet.mockClear();
-    SpreadsheetApp.getUi.mockClear();
-  },
 };

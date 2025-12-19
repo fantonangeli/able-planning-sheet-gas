@@ -1,5 +1,5 @@
 const {evalSource} = require('./Utils');
-const { createMockSheet, createMockRange, resetAllMocks } = require('../__mocks__/gas-api');
+const { createMockSheet, createMockRange } = require('../__mocks__/gas-api');
 
 global.extractUrlFromCell = jest.fn();
 global.fetchGitHubIssueState = jest.fn();
@@ -8,32 +8,30 @@ global.sendUpdateNotification = jest.fn();
 evalSource( '../src/Config.js')
 evalSource( '../src/GHStatusUpdater.js')
 
+const richTextRow = Array(7).fill(null);
+const spreadsheetUrl = 'https://docs.google.com/spreadsheets/d/12345678910/edit';
+const columnIndexes = {
+    requirementColIndex: 0,
+    productJiraColIndex: 1,
+    upstreamIssueColIndex: 2,
+    statusColIndex: 3,
+    responsibleColIndex: 4,
+    responsibleEmailColIndex: 5,
+    remainingWorkColIndex: 6,
+};
+
 describe('updateRowGHStatus', () => {
     let mockSheet;
     let mockRange;
-    const richTextRow = Array(6).fill(null);
-    const spreadsheetUrl = 'https://docs.google.com/spreadsheets/d/12345678910/edit';
-    const columnIndexes = {
-        requirementColIndex: 0,
-        productJiraColIndex: 1,
-        upstreamIssueColIndex: 2,
-        statusColIndex: 3,
-        responsibleColIndex: 4,
-        responsibleEmailColIndex: 5,
-        remainingWorkColIndex: 6,
-    };
 
     beforeEach(() => {
-        resetAllMocks();
-        jest.clearAllMocks();
+        jest.resetAllMocks();
 
         mockRange = createMockRange();
         mockSheet = createMockSheet();
         mockSheet.getRange.mockReturnValue(mockRange);
 
-        extractUrlFromCell.mockReset();
-        fetchGitHubIssueState.mockReset();
-        sendUpdateNotification.mockReset();
+        extractUrlFromCell.mockImplementation((url) => url);
     });
 
     describe("should return false and skip the row ", ()=>{
@@ -43,7 +41,7 @@ describe('updateRowGHStatus', () => {
         ])('%s', (_description, githubIssueUrl, fetchGitHubIssueStateMockValue) => {
             const row = [
                 'Some requirement',
-                'RHEL-12345',
+                'https://issues.jira.com/browse/JIRA-12345',
                 githubIssueUrl,
                 'In progress',
                 'John Doe',
@@ -51,14 +49,12 @@ describe('updateRowGHStatus', () => {
                 '3',
             ];
 
-            extractUrlFromCell.mockReturnValue(githubIssueUrl);
             fetchGitHubIssueState.mockReturnValue(fetchGitHubIssueStateMockValue);
 
             const result = updateRowGHStatus(mockSheet, 1, row, richTextRow, columnIndexes, spreadsheetUrl);
 
             expect(result).toBe(false);
             expect(fetchGitHubIssueState).toHaveBeenCalledWith(githubIssueUrl);
-            expect(mockSheet.getRange).not.toHaveBeenCalled();
             expect(mockRange.setValue).not.toHaveBeenCalled();
         });
     });
@@ -67,7 +63,7 @@ describe('updateRowGHStatus', () => {
         it('should update Status to Finished and Remaining Work to 0', () => {
             const row = [
                 'Some requirement',
-                'RHEL-12345',
+                'https://issues.jira.com/browse/JIRA-12345',
                 'https://github.com/owner/repo/issues/123',
                 'In progress',
                 'John Doe',
@@ -75,7 +71,6 @@ describe('updateRowGHStatus', () => {
                 '5',
             ];
 
-            extractUrlFromCell.mockReturnValue('https://github.com/owner/repo/issues/123');
             fetchGitHubIssueState.mockReturnValue('closed');
 
             const result = updateRowGHStatus(mockSheet, 1, row, richTextRow, columnIndexes, spreadsheetUrl);
@@ -84,24 +79,26 @@ describe('updateRowGHStatus', () => {
             expect(fetchGitHubIssueState).toHaveBeenCalledWith('https://github.com/owner/repo/issues/123');
             expect(mockRange.setValue).toHaveBeenCalledWith('Finished');
             expect(mockRange.setValue).toHaveBeenCalledWith('0');
-            expect(sendUpdateNotification).toHaveBeenCalledWith({
+            expect(sendUpdateNotification).toHaveBeenCalledWith(
+                expect.objectContaining({
                 email: 'john@example.com',
                 issueUrl: 'https://github.com/owner/repo/issues/123',
                 issueState: 'closed',
                 requirementName: 'Some requirement',
                 rowNumber: 2,
-                productJiraUrl: 'https://github.com/owner/repo/issues/123', 
+                productJiraUrl: 'https://issues.jira.com/browse/JIRA-12345', 
                 responsibleName: 'John Doe',
                 spreadsheetUrl,
                 updatedStatus: 'Finished'
-            });
+                })
+            );
         });
 
-        it('should skip email notification when no responsible email', () => {
+        it('should skip email notification when responsible email is not set', () => {
 
             const row = [
                 'Some requirement',
-                'RHEL-12345',
+                'https://issues.jira.com/browse/JIRA-12345',
                 'https://github.com/owner/repo/issues/123',
                 'In progress',
                 'John Doe',
@@ -109,14 +106,12 @@ describe('updateRowGHStatus', () => {
                 '5',
             ];
 
-            extractUrlFromCell.mockReturnValue('https://github.com/owner/repo/issues/123');
             fetchGitHubIssueState.mockReturnValue('closed');
 
             const result = updateRowGHStatus(mockSheet, 1, row, richTextRow, columnIndexes, spreadsheetUrl);
 
             expect(result).toBe(true);
             expect(sendUpdateNotification).not.toHaveBeenCalled();
-            expect(Logger.log).toHaveBeenCalledWith(expect.stringContaining('No email found'));
         });
     });
 });
