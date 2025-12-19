@@ -66,11 +66,11 @@ const createMockUi = () => ({
 });
 
 global.SpreadsheetApp = {
+  create: jest.fn((name) => createMockSpreadsheet()),
   getActiveSpreadsheet: jest.fn(() => createMockSpreadsheet()),
   getUi: jest.fn(() => createMockUi()),
   openById: jest.fn((id) => createMockSpreadsheet()),
   openByUrl: jest.fn((url) => createMockSpreadsheet()),
-  create: jest.fn((name) => createMockSpreadsheet()),
 };
 
 module.exports = {

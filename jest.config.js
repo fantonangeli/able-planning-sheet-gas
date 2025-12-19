@@ -8,21 +8,12 @@ module.exports = {
     '**/?(*.)+(spec|test).js'
   ],
 
-  setupFiles: ['<rootDir>/__mocks__/gas-api.js'],
+  setupFiles: ['<rootDir>/__tests__/__mocks__/gas-api.js'],
 
   collectCoverageFrom: [
     'src/**/*.js',
     '!src/**/*.test.js',
   ],
-
-  coverageThresholds: {
-    global: {
-      branches: 50,
-      functions: 50,
-      lines: 50,
-      statements: 50,
-    },
-  },
 
   moduleDirectories: ['node_modules', 'src'],
 
