@@ -148,10 +148,15 @@ function updateAllGHStatuses() {
 
   Logger.log(`\n=== Completed: ${updatedCount} updated, ${skippedCount} skipped ===`);
 
-  const ui = SpreadsheetApp.getUi();
-  ui.alert(
-    'Sync Completed',
-    `Updated: ${updatedCount} row(s)\nSkipped: ${skippedCount} row(s)`,
-    ui.ButtonSet.OK
-  );
+    try {
+        // if executed by a timely trigger getUi() throw an exception
+        const ui = SpreadsheetApp.getUi();
+        ui.alert(
+            'Sync Completed',
+            `Updated: ${updatedCount} row(s)\nSkipped: ${skippedCount} row(s)`,
+            ui.ButtonSet.OK
+        );
+    } catch (error) {
+        
+    }
 }
